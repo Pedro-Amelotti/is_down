@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Monitoramento de Sistemas</title>
+    <meta http-equiv="refresh" content="60">
+
+    {% load static %}
+    <link rel="icon" type="image/png" href="{% static "favicon.png" %}">
+    
+    
+    <style>
+        :root {
+            --primary-color:rgb(48, 124, 206); /* Azul mais claro */
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+        }
+
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: minmax(300px, 2fr) 3fr;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1920px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-icon {
+            width: 64px;
+            height: 64px;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); /* Adicionado sombra suave */
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .header-text {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .systems-panel {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .systems-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .system-card {
+            aspect-ratio: 1;
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .system-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .system-card.up {
+            background-color: #d4edda;
+            border: 2px solid var(--success-color);
+        }
+
+        .system-card.down {
+            background-color: #f8d7da;
+            border: 2px solid var(--danger-color);
+        }
+
+        .system-card.loading {
+            background-color: #fff3cd;
+            border: 2px solid var(--warning-color);
+        }
+
+        .system-name {
+            font-weight: bold;
+            font-size: 1rem;
+            margin-bottom: 8px;
+        }
+
+        .system-status {
+            font-size: 0.9rem;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin: 8px 0;
+        }
+
+        .up .system-status {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .down .system-status {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        .system-url {
+            font-size: 0.9rem;
+            color: #007bff;
+            margin-top: 8px;
+            text-decoration: none;
+            padding: 4px 8px;
+            border: 1px solid #007bff;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .system-url:hover {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .system-timestamp {
+            font-size: 0.75rem;
+            color: #888;
+            margin-top: auto;
+        }
+
+        .glpi-panel {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            height: calc(100vh - 140px);
+            display: flex;
+            flex-direction: column;
+            overflow: auto;
+        }
+
+        .glpi-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .glpi-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .glpi-actions a {
+            color: #007bff;
+            text-decoration: none;
+            font-size: 0.9rem;
+            padding: 5px 10px;
+            border: 1px solid #007bff;
+            border-radius: 5px;
+            transition: all 0.2s;
+        }
+
+        .glpi-actions a:hover {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .glpi-iframe {
+            flex: 1;
+            width: 100%;
+            border: none;
+            border-radius: 5px;
+        }
+
+        .tickets-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .tickets-table th,
+        .tickets-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .tickets-table th {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 500;
+        }
+
+        .tickets-table tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .priority-high {
+            color: var(--danger-color);
+            font-weight: bold;
+        }
+
+        .priority-medium {
+            color: var(--warning-color);
+            font-weight: bold;
+        }
+
+        .priority-low {
+            color: var(--success-color);
+        }
+
+        @keyframes loadingBar {
+            0% { background-position: 0 0; }
+            100% { background-position: 60px 0; }
+        }
+
+        .loading-bar {
+            display: inline-block;
+            width: 60px;
+            height: 10px;
+            background: linear-gradient(90deg, var(--warning-color) 40%, #fff3cd 100%);
+            border-radius: 5px;
+            margin-top: 10px;
+            animation: loadingBar 1s infinite linear;
+        }
+
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            
+            .glpi-panel {
+                height: 600px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Modifique a estrutura do header -->
+    <header class="header">
+        <div class="header-title">
+            <img src="{% static 'favicon.png' %}" alt="Ícone" class="header-icon">
+            <h1>Monitoramento de Sistemas</h1>
+        </div>
+        <span class="header-text">Desenvolvido pelo 2º Tenente Amelotti, Ch STI 1ºBEC em 26/05/2025</span>
+    </header>
+
+    <div class="container">
+        <div class="systems-panel">
+            <div class="systems-grid" id="status-list">
+                <!-- Os sistemas serão carregados aqui -->
+            </div>
+        </div>
+
+        <div class="glpi-panel">
+            <div class="glpi-header">
+                <span class="glpi-title">Chamados Ativos - GLPI</span>
+                <div class="glpi-actions">
+                    <a href="http://10.46.75.13/front/ticket.php" target="_blank">Abrir GLPI</a>
+                </div>
+            </div>
+            <table class="tickets-table">
+                <thead>
+                    <tr>
+                        <th>Solicitante</th>
+                        <th>Título</th>
+                        <th>Prioridade</th>
+                        <th>Status</th>
+                        <th>Data</th>
+                    </tr>
+                </thead>
+                <tbody id="tickets-list">
+                    <tr>
+                        <td colspan="5" style="text-align: center;">Carregando chamados...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div> <!-- fim do container -->
+    <script>
+        function createSystemCard(system, status = 'loading') {
+            const card = document.createElement('div');
+            card.className = `system-card ${status}`;
+            card.innerHTML = `
+                <div class="system-name">${system.name}</div>
+                <div class="system-status">${status.toUpperCase()}</div>
+                <a href="${system.url}" target="_blank" class="system-url">Link</a>
+                <div class="system-timestamp"></div>
+                ${status === 'loading' ? '<div class="loading-bar"></div>' : ''}
+            `;
+            return card;
+        }
+
+        async function updateSystemStatus(card, system) {
+            try {
+                const response = await fetch(`/system_status/?url=${encodeURIComponent(system.url)}&name=${encodeURIComponent(system.name)}`);
+                const data = await response.json();
+                
+                card.className = `system-card ${data.status.toLowerCase()}`;
+                card.querySelector('.system-status').textContent = data.status;
+                card.querySelector('.system-timestamp').textContent = `Última verificação: ${data.checked_at}`;
+            } catch (error) {
+                card.className = 'system-card down';
+                card.querySelector('.system-status').textContent = 'ERRO';
+            }
+        }
+
+        async function loadSystems() {
+            const grid = document.getElementById('status-list');
+            try {
+                const response = await fetch('/systems_list/');
+                const systems = await response.json();
+                
+                grid.innerHTML = '';
+                systems.forEach(system => {
+                    const card = createSystemCard(system);
+                    grid.appendChild(card);
+                    updateSystemStatus(card, system);
+                });
+            } catch (error) {
+                grid.innerHTML = '<div class="system-card down">Erro ao carregar sistemas</div>';
+            }
+        }
+
+        const GLPI_API_URL = 'http://10.46.75.13/apirest.php/';
+        const API_TOKEN = 'qhxyYcgBBvreL9HPTdl3WrWDOFZE8O61Ptiq98zN'; // Substitua pelo seu token
+
+        // Adicione esta função para buscar os detalhes do usuário
+        async function getUserDetails(userId, sessionToken) {
+            try {
+                const response = await fetch(`${GLPI_API_URL}/User/${userId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Session-Token': sessionToken,
+                        'App-Token': 'ZEPcTvDHv6yelwRVdCIJQoFyOy5IESk6iFdEPkLR'
+                    }
+                });
+                const userData = await response.json();
+                return userData.realname && userData.firstname 
+                    ? `${userData.realname} ${userData.firstname}`
+                    : userData.name || 'Usuário não identificado';
+            } catch (error) {
+                console.error(`Erro ao buscar detalhes do usuário ${userId}:`, error);
+                return 'Usuário não identificado';
+            }
+        }
+
+        async function loadTickets() {
+            try {
+                // Primeiro, faça o initSession para obter o session token
+                const initSession = await fetch(`${GLPI_API_URL}/initSession`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `user_token ${API_TOKEN}`,
+                        'App-Token': 'ZEPcTvDHv6yelwRVdCIJQoFyOy5IESk6iFdEPkLR'
+                    }
+                });
+                
+                const session = await initSession.json();
+                
+                if (!session.session_token) {
+                    throw new Error('Falha ao obter session token');
+                }
+
+                // Busca os tickets
+                const response = await fetch(`${GLPI_API_URL}/Ticket?is_deleted=0&order=DESC&sort=date_mod`, {
+                    method: 'GET',
+                    headers: {
+                        'Session-Token': session.session_token,
+                        'App-Token': 'ZEPcTvDHv6yelwRVdCIJQoFyOy5IESk6iFdEPkLR'
+                    }
+                });
+                
+                const tickets = await response.json();
+                
+                if (!tickets || tickets.length === 0) {
+                    document.getElementById('tickets-list').innerHTML = 
+                        '<tr><td colspan="5" style="text-align: center;">Nenhum chamado encontrado</td></tr>';
+                    return;
+                }
+
+                // Busca os detalhes dos usuários para cada ticket
+                const ticketsWithUserDetails = await Promise.all(
+                    tickets
+                        .filter(ticket => ticket.status < 5)
+                        .map(async ticket => {
+                            const userName = await getUserDetails(ticket.users_id_recipient, session.session_token);
+                            return {
+                                ...ticket,
+                                userName
+                            };
+                        })
+                );
+
+                // Atualiza a tabela com os tickets e nomes dos usuários
+                document.getElementById('tickets-list').innerHTML = ticketsWithUserDetails
+                    .map(ticket => `
+                        <tr>
+                            <td>${ticket.userName}</td>
+                            <td>${ticket.name || '[Sem título]'}</td>
+                            <td class="priority-${getPriorityClass(ticket.priority)}">
+                                ${getPriorityText(ticket.priority)}
+                            </td>
+                            <td>${getStatusText(ticket.status)}</td>
+                            <td>
+                                <div>Abertura: ${formatDate(ticket.date_creation)}</div>
+                                <div>Atualização: ${formatDate(ticket.date_mod)}</div>
+                            </td>
+                        </tr>
+                    `).join('');
+
+                // Encerra a sessão
+                await fetch(`${GLPI_API_URL}/killSession`, {
+                    method: 'GET',
+                    headers: {
+                        'Session-Token': session.session_token,
+                        'App-Token': 'ZEPcTvDHv6yelwRVdCIJQoFyOy5IESk6iFdEPkLR'
+                    }
+                });
+
+            } catch (error) {
+                console.error('Erro ao carregar chamados:', error);
+                document.getElementById('tickets-list').innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 20px; color: #721c24;">
+                            Não foi possível carregar os chamados
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // Atualizar função getStatusText para mapear corretamente os status
+        function getStatusText(status) {
+            const statusMap = {
+                1: 'Novo',
+                2: 'Em Andamento (Atribuído)',
+                3: 'Planejado',
+                4: 'Pendente',
+                5: 'Resolvido',
+                6: 'Fechado'
+            };
+            return statusMap[status] || 'Status Desconhecido';
+        }
+
+        // Atualizar função getPriorityText para mapear corretamente as prioridades
+        function getPriorityText(priority) {
+            const priorityMap = {
+                1: 'Muito Baixa',
+                2: 'Baixa',
+                3: 'Média',
+                4: 'Alta',
+                5: 'Muito Alta'
+            };
+            return priorityMap[priority] || 'Prioridade Desconhecida';
+        }
+
+        function getPriorityClass(priority) {
+            switch (priority) {
+                case 5: return 'high';
+                case 4:
+                case 3: return 'medium';
+                default: return 'low';
+            }
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return 'Data não disponível';
+            const date = new Date(dateStr);
+            return date.toLocaleString('pt-BR', { 
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        loadSystems();
+        setInterval(loadSystems, 60000);
+
+        // Carrega os chamados inicialmente e atualiza a cada 60 segundos
+        loadTickets();
+        setInterval(loadTickets, 60000);
+    </script>
+</body>
+</html>
