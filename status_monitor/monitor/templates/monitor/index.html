@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Monitoramento de Sistemas</title>
-    <meta http-equiv="refresh" content="60">
+    <!-- <meta http-equiv="refresh" content="60"> -->
 
     {% load static %}
     <link rel="icon" type="image/png" href="{% static "favicon.png" %}">
@@ -307,7 +307,7 @@
     <div class="container" id="main-container">
         <div class="systems-panel">
             <div class="systems-grid" id="status-list">
-                <!-- Os sistemas serão carregados aqui -->
+                <!-- Os sistemas aparecem aqui -->
             </div>
         </div>
 
@@ -377,12 +377,12 @@
             try {
                 const response = await fetch('/systems_list/');
                 const servers = await response.json();
-                
+
                 container.innerHTML = ''; // Limpa o container antes de adicionar os painéis
             
                 for (const serverName in servers) {
                     const systems = servers[serverName];
-                    
+
                     // Cria o painel para o servidor
                     const panel = document.createElement('div');
                     panel.className = 'systems-panel';
@@ -400,7 +400,7 @@
                 
                     // Adiciona o painel completo ao container principal
                     container.appendChild(panel);
-                    
+
                     // Popula a grade com os sistemas
                     if (systems.length > 0) {
                         systems.forEach(system => {
