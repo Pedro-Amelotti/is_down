@@ -5,8 +5,8 @@ import requests
 from datetime import datetime
 from django.views.decorators.http import require_GET
 
-# Lista de sistemas a serem monitorados
-domains = [
+# Lista de domínios para o primeiro servidor (198.211.109.216)
+domains_server1 = [
     "adc.presgera.com", "arialief.com", "beard.presgera.com", "bg.arialief.com",
     "bg.en.presgera.com", "bg.feilaira.com", "bg.garaherb.com", "bg.goldenfrib.com",
     "bg.keskara.online", "bg.laellium.com", "bg.presgera.com", "bg.sciatilief.com",
@@ -23,7 +23,11 @@ domains = [
     "homologacao.arialief.com", "idea.yufalti.com", "jan.yufalti.com", "keskara.online",
     "la.yufalti.com", "laellium.com", "lal.yufalti.com", "lct.presgera.com",
     "lee.yufalti.com", "mb1.yufalti.com", "media.presgera.com", "mioralab.com",
-    "mrock.yufalti.com", "presgera.com", "sciatilief.com", "xmxcorp.com", "yufalti.com",
+    "mrock.yufalti.com", "presgera.com", "sciatilief.com", "xmxcorp.com", "yufalti.com"
+]
+
+# Lista de domínios para o segundo servidor (198.211.109.215)
+domains_server2 = [
     "adc.yufalti.com", "adc.zurylix.com", "alitoryn.com", "alphacur.com", "ariomyx.com",
     "basmontex.com", "beard.blinzador.com", "beard.kymezol.com", "bg.alphacur.com",
     "bg.blinzador.com", "bg.korvizol.com", "bg.kymezol.com", "bg.memyts.com",
@@ -43,34 +47,50 @@ domains = [
     "zerevest.com", "zurylix.com"
 ]
 
-systems = [{"name": d, "url": f"http://{d}"} for d in domains]
+# Agrupando os sistemas com os nomes corretos dos servidores
+servers = {
+    "servidor-produtos-principais": [{"name": d, "url": f"http://{d}"} for d in domains_server1],
+    "servidor-produtos-principais-2": [{"name": d, "url": f"http://{d}"} for d in domains_server2],
+}
 
 def check_url(url):
     try:
         response = requests.get(url, timeout=5)
-        return response.status_code == 200
-    except:
-        return False
+        return response.status_code
+    except requests.RequestException:
+        return 0  # Retorna 0 em caso de erro de conexão ou timeout
+
+def get_status_string(status_code):
+    if status_code == 200:
+        return "UP"
+    elif status_code == 403:
+        return "FORBIDDEN"
+    else:
+        return "DOWN"
 
 def index(request):
     return render(request, 'monitor/index.html')
 
 def status(request):
-    results = []
-    for system in systems:
-        is_up = check_url(system['url'])
-        results.append({
-            "name": system['name'],
-            "url": system['url'],
-            "status": "UP" if is_up else "DOWN",
-            "checked_at": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        })
-    return JsonResponse(results, safe=False)
+    results = {}
+    for server_name, systems in servers.items():
+        server_results = []
+        for system in systems:
+            status_code = check_url(system['url'])
+            status_str = get_status_string(status_code)
+            server_results.append({
+                "name": system['name'],
+                "url": system['url'],
+                "status": status_str,
+                "checked_at": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            })
+        results[server_name] = server_results
+    return JsonResponse(results)
 
 @require_GET
 def systems_list(request):
-    # Retorna apenas nome e url, sem status
-    return JsonResponse([{"name": s["name"], "url": s["url"]} for s in systems], safe=False)
+    # Retorna o dicionário de servidores com nome e url
+    return JsonResponse(servers)
 
 @require_GET
 def system_status(request):
@@ -78,11 +98,14 @@ def system_status(request):
     name = request.GET.get("name")
     if not url or not name:
         return JsonResponse({"error": "Parâmetros ausentes"}, status=400)
-    is_up = check_url(url)
+
+    status_code = check_url(url)
+    status_str = get_status_string(status_code)
+
     return JsonResponse({
         "name": name,
         "url": url,
-        "status": "UP" if is_up else "DOWN",
+        "status": status_str,
         "checked_at": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     })
 

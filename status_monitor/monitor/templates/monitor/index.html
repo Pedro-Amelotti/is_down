@@ -12,9 +12,10 @@
     <style>
         :root {
             --primary-color:rgb(48, 124, 206); /* Azul mais claro */
-            --success-color: #28a745;
-            --danger-color: #dc3545;
-            --warning-color: #ffc107;
+            --success-color: #28a745; /* Verde */
+            --danger-color: #dc3545;  /* Vermelho */
+            --warning-color: #ffc107; /* Amarelo */
+            --other-color: #6c757d;   /* Cinza */
         }
 
         body {
@@ -27,10 +28,21 @@
         .container {
             display: grid;
             /* grid-template-columns: minmax(300px, 2fr) 3fr; */
+            grid-template-columns: 1fr 1fr; /* Divide o container em duas colunas iguais */
             gap: 20px;
             padding: 20px;
-            max-width: 1920px;
+            max-width: 100%;
             margin: 0 auto;
+        }
+
+        .server-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+            text-align: center;
         }
 
         .header {
@@ -116,6 +128,15 @@
             border: 2px solid var(--warning-color);
         }
 
+        .system-card.forbidden {
+            background-color: #fff3cd;
+            border: 2px solid var(--warning-color);
+        }
+        .system-card.other {
+            background-color: #e2e3e5;
+            border: 2px solid var(--other-color);
+        }
+
         .system-name {
             font-weight: bold;
             font-size: 1rem;
@@ -127,7 +148,13 @@
             padding: 4px 8px;
             border-radius: 4px;
             margin: 8px 0;
+            color: rgb(0, 0, 0);
         }
+
+        .up .system-status { background-color: var(--success-color); }
+        .forbidden .system-status { background-color: var(--warning-color); color: #000; }
+        .down .system-status { background-color: var(--danger-color); }
+        .other .system-status { background-color: var(--other-color); }
 
         .up .system-status {
             background-color: var(--success-color);
@@ -269,7 +296,6 @@
     </style>
 </head>
 <body>
-    <!-- Modifique a estrutura do header -->
     <header class="header">
         <div class="header-title">
             <img src="{% static 'favicon.png' %}" alt="Ícone" class="header-icon">
@@ -278,7 +304,7 @@
         <span class="header-text">Desenvolvido pelo 2º Tenente Amelotti, Ch STI 1ºBEC em 26/05/2025</span>
     </header>
 
-    <div class="container">
+    <div class="container" id="main-container">
         <div class="systems-panel">
             <div class="systems-grid" id="status-list">
                 <!-- Os sistemas serão carregados aqui -->
@@ -328,10 +354,18 @@
             try {
                 const response = await fetch(`/system_status/?url=${encodeURIComponent(system.url)}&name=${encodeURIComponent(system.name)}`);
                 const data = await response.json();
-                
-                card.className = `system-card ${data.status.toLowerCase()}`;
+
+                // Converte a string de status para uma classe CSS válida (ex: "NOT FOUND" -> "not-found")
+                const statusClass = data.status.toLowerCase().replace(/\s+/g, '-');
+
+                card.className = `system-card ${statusClass}`;
                 card.querySelector('.system-status').textContent = data.status;
                 card.querySelector('.system-timestamp').textContent = `Última verificação: ${data.checked_at}`;
+                const loadingBar = card.querySelector('.loading-bar');
+                if (loadingBar) {
+                    loadingBar.remove();
+                }
+            
             } catch (error) {
                 card.className = 'system-card down';
                 card.querySelector('.system-status').textContent = 'ERRO';
@@ -339,24 +373,50 @@
         }
 
         async function loadSystems() {
-            const grid = document.getElementById('status-list');
+            const container = document.getElementById('main-container');
             try {
                 const response = await fetch('/systems_list/');
-                const systems = await response.json();
+                const servers = await response.json();
                 
-                grid.innerHTML = '';
-                systems.forEach(system => {
-                    const card = createSystemCard(system);
-                    grid.appendChild(card);
-                    updateSystemStatus(card, system);
-                });
+                container.innerHTML = ''; // Limpa o container antes de adicionar os painéis
+            
+                for (const serverName in servers) {
+                    const systems = servers[serverName];
+                    
+                    // Cria o painel para o servidor
+                    const panel = document.createElement('div');
+                    panel.className = 'systems-panel';
+                
+                    // Adiciona o título do servidor
+                    const title = document.createElement('h2');
+                    title.className = 'server-title';
+                    title.textContent = serverName;
+                    panel.appendChild(title);
+                
+                    // Cria a grade de sistemas
+                    const grid = document.createElement('div');
+                    grid.className = 'systems-grid';
+                    panel.appendChild(grid);
+                
+                    // Adiciona o painel completo ao container principal
+                    container.appendChild(panel);
+                    
+                    // Popula a grade com os sistemas
+                    if (systems.length > 0) {
+                        systems.forEach(system => {
+                            const card = createSystemCard(system);
+                            grid.appendChild(card);
+                            updateSystemStatus(card, system);
+                        });
+                    } else {
+                        grid.innerHTML = '<div>Nenhum sistema para monitorar neste servidor.</div>';
+                    }
+                }
             } catch (error) {
-                grid.innerHTML = '<div class="system-card down">Erro ao carregar sistemas</div>';
+                container.innerHTML = '<div class="system-card down">Erro ao carregar a lista de servidores</div>';
             }
         }
 
-        const GLPI_API_URL = 'http://10.46.75.13/apirest.php/';
-        const API_TOKEN = 'qhxyYcgBBvreL9HPTdl3WrWDOFZE8O61Ptiq98zN'; // Substitua pelo seu token
 
         // Adicione esta função para buscar os detalhes do usuário
         async function getUserDetails(userId, sessionToken) {
