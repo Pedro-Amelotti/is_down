@@ -11,7 +11,7 @@
     
     <style>
         :root {
-            --primary-color:rgb(48, 124, 206); /* Azul mais claro */
+            --primary-color:rgb(37, 20, 93); /* roxo */
             --success-color: #28a745; /* Verde */
             --danger-color: #dc3545;  /* Vermelho */
             --warning-color: #ffc107; /* Amarelo */
@@ -293,6 +293,28 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        .filter-container {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        #searchInput {
+            flex: 1;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        .filter-container button {
+            padding: 8px 12px;
+            border-radius: 5px;
+            border: none;
+            background-color: var(--primary-color);
+            color: white;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -301,11 +323,17 @@
             <img src="{% static 'favicon.png' %}" alt="Ícone" class="header-icon">
             <h1>Monitoramento de Sistemas</h1>
         </div>
-        <span class="header-text">Desenvolvido pelo 2º Tenente Amelotti, Ch STI 1ºBEC em 26/05/2025</span>
+        <span class="header-text">Desenvolvido por Pedro Amelotti, Equipe de Tecnologia</span>
     </header>
 
     <div class="container" id="main-container">
         <div class="systems-panel">
+            <div class="filter-container">
+                <input type="text" id="searchInput" onkeyup="filterSystems()" placeholder="Buscar por nome...">
+                <button onclick="filterByStatus('down')">DOWN</button>
+                <button onclick="filterByStatus('forbidden')">FORBIDDEN</button>
+                <button onclick="filterByStatus('')">Limpar</button>
+            </div>
             <div class="systems-grid" id="status-list">
                 <!-- Os sistemas aparecem aqui -->
             </div>
@@ -392,10 +420,22 @@
                     title.className = 'server-title';
                     title.textContent = serverName;
                     panel.appendChild(title);
+
+                    // Adiciona o container de filtros
+                    const filterContainer = document.createElement('div');
+                    filterContainer.className = 'filter-container';
+                    filterContainer.innerHTML = `
+                        <input type="text" id="searchInput-${serverName}" onkeyup="filterSystems('${serverName}')" placeholder="Buscar por nome...">
+                        <button onclick="filterByStatus('down', '${serverName}')">DOWN</button>
+                        <button onclick="filterByStatus('forbidden', '${serverName}')">FORBIDDEN</button>
+                        <button onclick="filterByStatus('', '${serverName}')">Limpar</button>
+                    `;
+                    panel.appendChild(filterContainer);
                 
                     // Cria a grade de sistemas
                     const grid = document.createElement('div');
                     grid.className = 'systems-grid';
+                    grid.id = `systems-grid-${serverName}`;
                     panel.appendChild(grid);
                 
                     // Adiciona o painel completo ao container principal
@@ -414,6 +454,35 @@
                 }
             } catch (error) {
                 container.innerHTML = '<div class="system-card down">Erro ao carregar a lista de servidores</div>';
+            }
+        }
+
+        function filterSystems(serverName) {
+            const input = document.getElementById(`searchInput-${serverName}`);
+            const filter = input.value.toUpperCase();
+            const grid = document.getElementById(`systems-grid-${serverName}`);
+            const cards = grid.getElementsByClassName('system-card');
+
+            for (let i = 0; i < cards.length; i++) {
+                const name = cards[i].getElementsByClassName('system-name')[0];
+                if (name.innerHTML.toUpperCase().indexOf(filter) > -1) {
+                    cards[i].style.display = "";
+                } else {
+                    cards[i].style.display = "none";
+                }
+            }
+        }
+
+        function filterByStatus(status, serverName) {
+            const grid = document.getElementById(`systems-grid-${serverName}`);
+            const cards = grid.getElementsByClassName('system-card');
+
+            for (let i = 0; i < cards.length; i++) {
+                if (status === '' || cards[i].classList.contains(status)) {
+                    cards[i].style.display = "";
+                } else {
+                    cards[i].style.display = "none";
+                }
             }
         }
 
