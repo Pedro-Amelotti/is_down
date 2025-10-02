@@ -6,23 +6,44 @@ from datetime import datetime
 from django.views.decorators.http import require_GET
 
 # Lista de sistemas a serem monitorados
-systems = [
-    # {"name": "Proxmox VE", "url": "http://10.46.75.2:8006/"},
-    # {"name": "Proxmox BS", "url": "http://10.46.75.3:8007/"},
-    {"name": "Intranet", "url": "http://10.46.75.5/intranet/index.php/pt-br/"},
-    {"name": "Sisbol", "url": "http://10.46.75.6/band/"},
-    {"name": "P2", "url": "http://10.46.75.7/controle_p2/"},
-    {"name": "Nextcloud", "url": "http://10.46.75.8"},
-    {"name": "Sped Consulta 1", "url": "http://10.46.75.9/sped/administracao/sessao/eb/logon.jsp"},
-    {"name": "Nextcloud-BIs", "url": "http://10.46.75.10/nextcloud/"},
-    {"name": "SIS-COM", "url": "http://10.46.75.11/"},
-    {"name": "Arranchamento", "url": "http://10.46.75.12/"},
-    {"name": "GLPI", "url": "http://10.46.75.13/"},
-    {"name": "Papiro", "url": "http://10.46.75.14:8080/"},
-    # {"name": "Siscofis", "url": "http://10.46.75.15"},
-    {"name": "Sped Consulta 2", "url": "http://10.46.75.16/sped/administracao/sessao/eb/logon.jsp"},
-    {"name": "SPED", "url": "http://sped3.1bec.eb.mil.br/#/login"},
+domains = [
+    "adc.presgera.com", "arialief.com", "beard.presgera.com", "bg.arialief.com",
+    "bg.en.presgera.com", "bg.feilaira.com", "bg.garaherb.com", "bg.goldenfrib.com",
+    "bg.keskara.online", "bg.laellium.com", "bg.presgera.com", "bg.sciatilief.com",
+    "blog.arialief.com", "cb.arialief.com", "cb.en.presgera.com", "cb.feilaira.com",
+    "cb.goldenfrib.com", "cb.laellium.com", "cb.sciatilief.com", "cp.arialief.com",
+    "cp.cucudrops.com", "cp.en.presgera.com", "cp.feilaira.com", "cp.goldenfrib.com",
+    "cp.keskara.online", "cp.laellium.com", "cp.presgera.com", "cucudrops.com",
+    "ds.arialief.com", "ds.en.presgera.com", "ds.feilaira.com", "ds.garaherb.com",
+    "ds.laellium.com", "faq.arialief.com", "feilaira.com", "garaherb.com",
+    "get.arialief.com", "get.garaherb.com", "get.goldenfrib.com", "get.keskara.online",
+    "get.laellium.com", "get.presgera.com", "goldenfrib.com", "hml.arialief.com",
+    "hml.cucudrops.com", "hml.feilaira.com", "hml.garaherb.com", "hml.goldenfrib.com",
+    "hml.keskara.online", "hml.laellium.com", "hml.presgera.com", "hml.sciatilief.com",
+    "homologacao.arialief.com", "idea.yufalti.com", "jan.yufalti.com", "keskara.online",
+    "la.yufalti.com", "laellium.com", "lal.yufalti.com", "lct.presgera.com",
+    "lee.yufalti.com", "mb1.yufalti.com", "media.presgera.com", "mioralab.com",
+    "mrock.yufalti.com", "presgera.com", "sciatilief.com", "xmxcorp.com", "yufalti.com",
+    "adc.yufalti.com", "adc.zurylix.com", "alitoryn.com", "alphacur.com", "ariomyx.com",
+    "basmontex.com", "beard.blinzador.com", "beard.kymezol.com", "bg.alphacur.com",
+    "bg.blinzador.com", "bg.korvizol.com", "bg.kymezol.com", "bg.memyts.com",
+    "bg.sc.alphacur.com", "blinzador.com", "cb.alphacur.com", "cb.blinzador.com",
+    "cb.kymezol.com", "ceramiri.com", "dry.yufalti.com", "ds.alphacur.com",
+    "ds.blinzador.com", "ds.kymezol.com", "ds.memyts.com", "elm.kryvenonline.com",
+    "eln.kryvenonline.com", "en.alphacur.com", "everwellinsights.com", "farulena.com",
+    "get.alphacur.com", "get.basmontex.com", "get.blinzador.com", "get.kymezol.com",
+    "get.memyts.com", "get.zerevest.com", "hml.alitoryn.com", "hml.alphacur.com",
+    "hml.ariomyx.com", "hml.blinzador.com", "hml.karylief.com", "hml.korvizol.com",
+    "hml.kymezol.com", "hml.levhyn.com", "hml.mahgryn.com", "hml.memyts.com",
+    "hml.nathurex.com", "hml.zerevest.com", "ic1.zurylix.com", "karylief.com",
+    "korvizol.com", "kymezol.com", "lee1.zurylix.com", "lee2.zurylix.com", "levhyn.com",
+    "lj.yundelo.com", "mahgryn.com", "mb2.yufalti.com", "memyts.com", "nathurex.com",
+    "rock.kymezol.com", "thehealthnow.com", "thewellnesswize.com", "thewellspecialists.com",
+    "wdl.yufalti.com", "wdl.zurylix.com", "wenzora.com", "yundelo.com", "zalovira.com",
+    "zerevest.com", "zurylix.com"
 ]
+
+systems = [{"name": d, "url": f"http://{d}"} for d in domains]
 
 def check_url(url):
     try:

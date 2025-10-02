@@ -26,7 +26,7 @@
 
         .container {
             display: grid;
-            grid-template-columns: minmax(300px, 2fr) 3fr;
+            /* grid-template-columns: minmax(300px, 2fr) 3fr; */
             gap: 20px;
             padding: 20px;
             max-width: 1920px;
@@ -265,10 +265,6 @@
             .container {
                 grid-template-columns: 1fr;
             }
-            
-            .glpi-panel {
-                height: 600px;
-            }
         }
     </style>
 </head>
@@ -289,7 +285,7 @@
             </div>
         </div>
 
-        <div class="glpi-panel">
+        <!-- <div class="glpi-panel">
             <div class="glpi-header">
                 <span class="glpi-title">Chamados Ativos - GLPI</span>
                 <div class="glpi-actions">
@@ -312,7 +308,7 @@
                     </tr>
                 </tbody>
             </table>
-        </div>
+        </div> -->
     </div> <!-- fim do container -->
     <script>
         function createSystemCard(system, status = 'loading') {
