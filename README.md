@@ -1,36 +1,30 @@
-# Status Monitor
+# Monitor de Status de Sistemas
 
-This is a Django application to monitor the status of websites.
+Essa é uma aplicação Django para monitorar os status de sites
 
-## Installation
+## Instalação
 
-1.  **Clone the repository:**
+1.  **Clone o repositório:**
     ```bash
-    git clone <repository-url>
+    git clone https://github.com/Pedro-Amelotti/is_down
     cd status_monitor
     ```
 
-2.  **Create a virtual environment and activate it:**
-    ```bash
-    python -m venv venv
-    source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
-    ```
-
-3.  **Install the dependencies:**
+2.  **Instale as dependências:**
     ```bash
     pip install django requests
     ```
 
-4.  **Run the database migrations:**
+3.  **Rode as migrações da database:**
     ```bash
     python manage.py migrate
     ```
 
-## Running the server
+## Rodando o servidor
 
-To start the development server, run:
+Para iniciar o servidor de desenvolvimento, rode:
 ```bash
 python manage.py runserver
 ```
 
-The application will be available at `http://127.0.0.1:8000/`.
+A aplicação estará disponível em `http://127.0.0.1:8000/` ou outro ip local.
