@@ -13,8 +13,43 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 from pathlib import Path
 
+
+def _load_env_file(path: Path) -> None:
+    """Populate os.environ with variables defined in a .env file.
+
+    The loader is intentionally simple: it supports KEY=VALUE pairs, ignores
+    blank lines and comments, and preserves existing environment values.
+    """
+
+    if not path.exists():
+        return
+
+    try:
+        with path.open("r", encoding="utf-8") as env_file:
+            for raw_line in env_file:
+                line = raw_line.strip()
+                if not line or line.startswith("#"):
+                    continue
+
+                if "=" not in line:
+                    continue
+
+                key, value = line.split("=", 1)
+                key = key.strip()
+                value = value.strip().strip('"').strip("'")
+
+                if key and key not in os.environ:
+                    os.environ[key] = value
+    except OSError:
+        # Silenciosamente ignora erros de leitura para não interromper o boot
+        # da aplicação caso o arquivo esteja inacessível.
+        pass
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+_load_env_file(BASE_DIR / ".env")
 
 
 # Quick-start development settings - unsuitable for production

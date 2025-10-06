@@ -110,7 +110,11 @@ O monitor pode enviar alertas para um canal do Discord sempre que um sistema apr
 uma mensagem de recuperação quando voltar para **UP**. Para habilitar essa integração:
 
 1. Crie (ou copie) um webhook no canal desejado seguindo as instruções da [documentação do Discord](https://support.discord.com/hc/pt-br/articles/228383668-Introdu%C3%A7%C3%A3o-aos-Webhooks).
-2. Exporte a URL do webhook na variável de ambiente `DISCORD_WEBHOOK_URL` antes de iniciar o servidor Django:
+2. Defina a URL do webhook usando um arquivo `.env` na raiz do projeto Django (`status_monitor/.env`). Você pode copiar o modelo [`status_monitor/.env.example`](status_monitor/.env.example) e atualizar o valor da variável:
+   ```dotenv
+   DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/xxxxxxxx
+   ```
+   O projeto carrega esse arquivo automaticamente na inicialização. Se preferir, você pode exportar a variável diretamente no terminal antes de iniciar o servidor Django:
    ```bash
    export DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/xxxxxxxx"
    python manage.py runserver 0.0.0.0:8000
@@ -121,7 +125,7 @@ uma mensagem de recuperação quando voltar para **UP**. Para habilitar essa int
    python manage.py runserver 0.0.0.0:8000
    ```
 
-Com a variável definida, o backend enviará uma única notificação a cada mudança de estado (queda ou recuperação) para cada sistema monitorado.
+Com a variável definida (via `.env` ou ambiente), o backend enviará uma única notificação a cada mudança de estado (queda ou recuperação) para cada sistema monitorado.
 
 ## Estrutura do projeto
 
