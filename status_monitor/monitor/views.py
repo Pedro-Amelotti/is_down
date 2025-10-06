@@ -1,10 +1,19 @@
 # Create your views here.
-from django.shortcuts import render
-from django.http import JsonResponse
-import requests
+import logging
 from datetime import datetime
+
+import requests
+from django.conf import settings
+from django.core.cache import cache
+from django.http import JsonResponse
+from django.shortcuts import render
+from django.utils.text import slugify
 from django.views.decorators.http import require_GET
+
 from .models import Server
+
+
+logger = logging.getLogger(__name__)
 
 # Lista de domínios para o primeiro servidor (198.211.109.216)
 # domains_server1 = [
@@ -69,6 +78,64 @@ def get_status_string(status_code):
     else:
         return "DOWN"
 
+
+def _cache_key_for_system(name: str) -> str:
+    slug = slugify(name) or "system"
+    return f"system-status-last:{slug}"
+
+
+def notify_discord(name: str, url: str, status_str: str, status_code: int | None) -> None:
+    webhook_url = getattr(settings, "DISCORD_WEBHOOK_URL", None)
+    if not webhook_url:
+        return
+
+    failure_statuses = {"DOWN", "FORBIDDEN"}
+    cache_key = _cache_key_for_system(name)
+    last_status = cache.get(cache_key)
+    cache.set(cache_key, status_str, timeout=24 * 3600)
+
+    message = None
+
+    if status_str in failure_statuses:
+        if last_status == status_str:
+            return
+        readable_code = status_code or "sem resposta"
+        message = {
+            "content": (
+                ":rotating_light: Sistema **{name}** está com status **{status}**.\n"
+                "URL: {url}\n"
+                "Código HTTP: {code}\n"
+                "Verificado em: {checked_at}"
+            ).format(
+                name=name,
+                status=status_str,
+                url=url,
+                code=readable_code,
+                checked_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            )
+        }
+    elif last_status in failure_statuses and status_str == "UP":
+        message = {
+            "content": (
+                ":white_check_mark: Sistema **{name}** voltou a ficar disponível.\n"
+                "URL: {url}\n"
+                "Verificado em: {checked_at}"
+            ).format(
+                name=name,
+                url=url,
+                checked_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            )
+        }
+
+    if not message:
+        return
+
+    try:
+        response = requests.post(webhook_url, json=message, timeout=5)
+        response.raise_for_status()
+    except requests.RequestException:
+        logger.exception("Falha ao enviar notificação para o Discord para %s", name)
+
 def index(request):
     return render(request, 'monitor/index.html')
 
@@ -110,6 +177,8 @@ def system_status(request):
 
     status_code = check_url(url)
     status_str = get_status_string(status_code)
+
+    notify_discord(name, url, status_str, status_code)
 
     return JsonResponse({
         "name": name,

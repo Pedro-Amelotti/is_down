@@ -104,6 +104,25 @@ python manage.py runserver 0.0.0.0:8000
 
 Para parar o servidor, pressione `Ctrl + C` no terminal.
 
+## Notificações no Discord
+
+O monitor pode enviar alertas para um canal do Discord sempre que um sistema apresentar status **DOWN** ou **FORBIDDEN**, além de
+uma mensagem de recuperação quando voltar para **UP**. Para habilitar essa integração:
+
+1. Crie (ou copie) um webhook no canal desejado seguindo as instruções da [documentação do Discord](https://support.discord.com/hc/pt-br/articles/228383668-Introdu%C3%A7%C3%A3o-aos-Webhooks).
+2. Exporte a URL do webhook na variável de ambiente `DISCORD_WEBHOOK_URL` antes de iniciar o servidor Django:
+   ```bash
+   export DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/xxxxxxxx"
+   python manage.py runserver 0.0.0.0:8000
+   ```
+   No Windows (PowerShell), utilize:
+   ```powershell
+   $env:DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/xxxxxxxx"
+   python manage.py runserver 0.0.0.0:8000
+   ```
+
+Com a variável definida, o backend enviará uma única notificação a cada mudança de estado (queda ou recuperação) para cada sistema monitorado.
+
 ## Estrutura do projeto
 
 ```
@@ -139,5 +158,6 @@ python manage.py test
 - Ajuste o intervalo de atualização alterando o valor passado a `setInterval` no arquivo `monitor/static/scripts.js` (valor padrão: 60000 ms).
 - Para hospedar em produção, lembre-se de configurar `DEBUG = False`, definir `ALLOWED_HOSTS` corretamente e utilizar um servidor de aplicação apropriado (Gunicorn, uWSGI, etc.).
 - Considere criar um arquivo `requirements.txt` ou `pyproject.toml` caso deseje fixar versões específicas das dependências.
+- Consulte também o arquivo [`IMPROVEMENTS.md`](IMPROVEMENTS.md) para uma lista priorizável de melhorias sugeridas para a evolução do monitor.
 
 Com esses passos, você terá o ambiente configurado e pronto para monitorar a disponibilidade dos seus sistemas.
