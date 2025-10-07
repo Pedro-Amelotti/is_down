@@ -1,9 +1,11 @@
-<!DOCTYPE html>
+{% load tz static %}
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
   <title>Status Monitor Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% load static %}
+  <link rel="icon" type="image/png" href="{% static 'favicon.png' %}">
 
   <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -39,9 +41,9 @@
   <header class="flex justify-between items-center px-8 py-6 shadow"
           :class="theme==='dark' ? 'bg-bg_dark text-white' : 'bg-bg_light text-gray-900'">
     <div class="flex items-center gap-3">
-      <div class="w-8 h-8 bg-up rounded-full flex items-center justify-center text-white font-bold">SM</div>
+      <img src="{% static 'favicon.png' %}" alt="Logo" class="w-8 h-8 rounded-full" />
       <div>
-        <h1 class="text-2xl font-bold">Status Monitor</h1>
+        <h1 class="text-2xl font-bold">Status Monitor - XMX</h1>
         <p class="text-sm opacity-75">Monitoramento em tempo real de páginas</p>
       </div>
     </div>
@@ -88,7 +90,7 @@
     <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
           <div class="card p-6 rounded-xl shadow" :class="theme==='dark' ? 'bg-card_dark' : 'bg-card_light'">
         <h2 class="text-lg font-semibold mb-4">Uptime nas Últimas 24 h</h2>
-        <div class="relative w-full h-[220px]">
+        <div class="relative w-full h-[260px]">
           <canvas id="uptimeLine" class="absolute inset-0"></canvas>
         </div>
           </div>
@@ -105,10 +107,58 @@
     <section class="card rounded-xl shadow p-6" :class="theme==='dark' ? 'bg-card_dark' : 'bg-card_light'">
       <h2 class="text-lg font-semibold mb-4">Sistemas Monitorados</h2>
 
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {% for server in servers %}
+        <div class="rounded-lg border p-4" :class="theme==='dark' ? 'border-gray-700' : 'border-gray-200'">
+          <header class="mb-3">
+            <h3 class="font-semibold">{{ server.name }}</h3>
+          </header>
+
+          <div class="space-y-3">
+            {% for s in server.systems.all %}
+            {% with st=s.current_status %}
+            <div class="flex items-center justify-between p-3 rounded-lg system-row" data-name="{{ s.name }}" data-url="{{ s.url }}"
+                 :class="theme==='dark' ? 'hover:bg-gray-800' : 'hover:bg-gray-50'">
+              <div class="flex items-center gap-3">
+                <div class="w-3 h-3 rounded-full"
+                     style="background-color:{% if st.status == 'UP' %}#16a34a{% elif st.status == 'DOWN' %}#dc2626{% elif st.status == 'FORBIDDEN' %}#facc15{% else %}#6b7280{% endif %};">
+                </div>
+                <div>
+                  <p class="font-medium">{{ s.name }}</p>
+                  <p class="text-xs opacity-70">{{ s.url }}</p>
+                </div>
+              </div>
+
+                <div class="flex items-center gap-4 text-sm">
+                    <span class="flex items-center gap-1 text-gray-400">
+                        ⏱ {{ st.checked_at|localtime|date:"H:i" }}
+                    </span>
+                        {% if st.status == "UP" %}
+                            <span class="bg-up/20 text-up px-3 py-1 rounded-full text-xs font-medium">Online</span>
+                        {% elif st.status == "DOWN" %}
+                            <span class="bg-down/20 text-down px-3 py-1 rounded-full text-xs font-medium">Offline</span>
+                        {% elif st.status == "FORBIDDEN" %}
+                            <span class="bg-forbidden/20 text-yellow-600 px-3 py-1 rounded-full text-xs font-medium">Bloqueado</span>
+                        {% else %}
+                            <span class="bg-gray-300/20 px-3 py-1 rounded-full text-xs font-medium">{{ st.status }}</span>
+                        {% endif %}
+                    <div class="text-xs text-gray-400 mt-1 response-time">-- ms</div>
+                </div>
+            </div>
+            {% endwith %}
+            {% empty %}
+            <p class="text-sm opacity-60">Nenhum sistema cadastrado neste servidor.</p>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      {% comment %}
       <div class="space-y-3">
         {% for s in systems %}
         {% with st=s.current_status %}
-        <div class="flex items-center justify-between p-3 rounded-lg"
+        <div class="flex items-center justify-between p-3 rounded-lg system-row" data-name="{{ s.name }}" data-url="{{ s.url }}"
              :class="theme==='dark' ? 'hover:bg-gray-800' : 'hover:bg-gray-50'">
           <div class="flex items-center gap-3">
             <div class="w-3 h-3 rounded-full"
@@ -122,7 +172,7 @@
 
           <div class="flex items-center gap-4 text-sm">
             <span class="flex items-center gap-1 text-gray-400">
-              ⏱ {{ st.checked_at|date:"H:i" }}
+              ⏱ {{ st.checked_at|localtime|date:"H:i" }}
             </span>
             {% if st.status == "UP" %}
               <span class="bg-up/20 text-up px-3 py-1 rounded-full text-xs font-medium">Online</span>
@@ -138,6 +188,7 @@
         {% endwith %}
         {% endfor %}
       </div>
+      {% endcomment %}
     </section>
   </main>
 
@@ -155,54 +206,116 @@
       }
     }
 
-    // Gráficos
-    document.addEventListener("DOMContentLoaded", () => {
-      // Uptime nas últimas 24h (linha)
-      const uptimeLine = new Chart(document.getElementById("uptimeLine"), {
-        type: "line",
-        data: {
-          labels: ["00h","04h","08h","12h","16h","20h"],
-          datasets: [{
-            label: "Uptime (%)",
-            data: [100, 98, 99, 99.5, 98.7, 100],
-            borderColor: "#16a34a",
-            tension: 0.3,
-            fill: false,
-          }]
-        },
-        options: {
-          scales: {
-            y: { beginAtZero: false, min: 95, max: 100 }
-          },
-          plugins: { legend: { display: false } },
-          responsive: true,
-          maintainAspectRatio: false,
-        }
-      });
+document.addEventListener("DOMContentLoaded", () => {
+  const labels = JSON.parse('{{ chart_labels|escapejs }}');
+  const dataPoints = JSON.parse('{{ chart_data|escapejs }}');
 
-      // Distribuição de status (pizza)
-      const statusPie = new Chart(document.getElementById("statusPie"), {
-        type: "doughnut",
-        data: {
-          labels: ["UP", "DOWN", "FORBIDDEN"],
-          datasets: [{
-            data: [{{ up }}, {{ down }}, {{ forbidden }}],
-            backgroundColor: ["#16a34a", "#dc2626", "#facc15"]
-          }]
+  console.log("Labels recebidas:", labels);
+  console.log("Dados recebidos:", dataPoints);
+
+  const ctx = document.getElementById("uptimeLine");
+  const uptimeLine = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        label: "Uptime (%)",
+        data: dataPoints,
+        borderColor: "#16a34a",
+        backgroundColor: "rgba(22,163,74,0.15)",
+        tension: 0.35,
+        fill: true,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          suggestedMax: 100,
+          ticks: { color: "#888" },
+          grid: { color: "#ddd" }
         },
-        options: {
-          plugins: {
-            legend: {
-              position: "bottom",
-              labels: {
-                color: localStorage.getItem('theme') === 'dark' ? '#fff' : '#111'
-              }
-            }
-          },
-          maintainAspectRatio: false
+        x: {
+          ticks: { color: "#888" },
+          grid: { display: false }
         }
-      });
+      },
+      plugins: {
+        legend: { display: false },
+      }
+    }
+  });
+
+  // força render após layout
+  setTimeout(() => {
+    uptimeLine.resize();
+    uptimeLine.update();
+    console.log("Chart redesenhado manualmente ✅");
+  }, 300);
+
+  // Pie chart (Distribuição Atual) usando contadores do contexto
+  const pieCanvas = document.getElementById('statusPie');
+  if (pieCanvas && typeof Chart !== 'undefined') {
+    const upCount = {{ up|default:0 }};
+    const forbiddenCount = {{ forbidden|default:0 }};
+    const downCount = {{ down|default:0 }};
+
+    new Chart(pieCanvas, {
+      type: 'doughnut',
+      data: {
+        labels: ['UP', 'FORBIDDEN', 'DOWN'],
+        datasets: [{
+          data: [upCount, forbiddenCount, downCount],
+          backgroundColor: ['#16a34a', '#facc15', '#dc2626'],
+          borderWidth: 1,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom' },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => `${ctx.label}: ${ctx.parsed}`,
+            },
+          },
+        },
+      },
     });
+  }
+
+  // Atualiza tempo de resposta em cada linha de sistema
+  async function refreshResponseTime(row) {
+    const url = row.getAttribute('data-url');
+    const name = row.getAttribute('data-name');
+    if (!url || !name) return;
+    const msEl = row.querySelector('.response-time');
+    try {
+      const resp = await fetch(`/system_status/?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name)}`);
+      if (!resp.ok) throw new Error('Falha ao consultar');
+      const data = await resp.json();
+      if (msEl && typeof data.response_ms === 'number') {
+        msEl.textContent = `${data.response_ms} ms`;
+      }
+    } catch (e) {
+      if (msEl) msEl.textContent = `-- ms`;
+      console.error('Erro ao atualizar tempo de resposta de', name, e);
+    }
+  }
+
+  document.querySelectorAll('.system-row').forEach((row) => {
+    refreshResponseTime(row);
+  });
+});
   </script>
 </body>
 </html>
+
+
+
+

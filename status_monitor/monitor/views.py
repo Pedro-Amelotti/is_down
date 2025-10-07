@@ -1,8 +1,9 @@
 import requests
 import logging
 import time
+import json
 
-from django.db.models import ExpressionWrapper, F, Q, Sum, Value
+from django.db.models import ExpressionWrapper, F, Q, Sum, Value, Count
 from django.db import models, transaction, OperationalError
 from django.views.decorators.http import require_GET
 from django.db.models.functions import Coalesce
@@ -26,11 +27,15 @@ logger = logging.getLogger(__name__)
 
 
 def check_url(url):
+    start = time.perf_counter()
     try:
         response = requests.get(url, timeout=5)
-        return response.status_code
+        status_code = response.status_code
     except requests.RequestException:
-        return 0  # Retorna 0 em caso de erro de conexão ou timeout
+        status_code = 0
+    finally:
+        elapsed_ms = int((time.perf_counter() - start) * 1000)
+    return status_code, elapsed_ms
 
 
 def get_status_string(status_code):
@@ -138,7 +143,7 @@ def system_status(request):
     if not url or not name:
         return JsonResponse({"error": "Parâmetros ausentes"}, status=400)
 
-    status_code = check_url(url)
+    status_code, elapsed_ms = check_url(url)
     status_str = get_status_string(status_code)
     now = timezone.now()
 
@@ -211,6 +216,7 @@ def system_status(request):
         "name": name,
         "url": url,
         "status": status_str,
+        "response_ms": elapsed_ms,
         "checked_at": timezone.localtime(now).strftime("%Y-%m-%d %H:%M:%S"),
     })
 
@@ -269,21 +275,61 @@ def dashboard_summary(request):
             "detail_anchor": "#main-container",
         }
     )
-
-def dashboard(request):
-    systems = System.objects.select_related("current_status")
     
-    # Contagens globais
+def dashboard(request):
+    now = timezone.now()
+    last_24h = now - timedelta(hours=24)
+
+    systems = System.objects.select_related("current_status")
+    # Carrega servidores com sistemas e status atual para o grid por servidor
+    servers = Server.objects.prefetch_related(
+        models.Prefetch(
+            'systems',
+            queryset=System.objects.select_related('current_status')
+        )
+    )
     total = systems.count()
     up = SystemStatus.objects.filter(status="UP").count()
     down = SystemStatus.objects.filter(status="DOWN").count()
     forbidden = SystemStatus.objects.filter(status="FORBIDDEN").count()
 
+    histories = (
+        SystemStatusHistory.objects.filter(checked_at__gte=last_24h)
+        .values("checked_at__hour")
+        .annotate(
+            total=Count("id"),
+            ups=Count("id", filter=Q(status="UP")),
+        )
+        .order_by("checked_at__hour")
+    )
+
+    labels, data = [], []
+    for h in range(24):
+        item = next((i for i in histories if i["checked_at__hour"] == h), None)
+        if item:
+            uptime = (item["ups"] / item["total"]) * 100
+        else:
+            uptime = 0
+        labels.append(f"{h:02d}h")
+        data.append(round(uptime, 2))
+
+    # Garante que sejam JSON válidos no template
+    chart_labels = json.dumps(labels)
+    chart_data = json.dumps(data)
+
     context = {
         "systems": systems,
+        "servers": servers,
         "up": up,
         "down": down,
         "forbidden": forbidden,
         "total": total,
+        "chart_labels": chart_labels,
+        "chart_data": chart_data,
     }
     return render(request, "monitor/dashboard.html", context)
+
+
+
+
+

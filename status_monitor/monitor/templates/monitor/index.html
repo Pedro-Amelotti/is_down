@@ -1,72 +1,90 @@
-<!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <title>Monitoramento de Sistemas</title>
-    <!-- <meta http-equiv="refresh" content="60"> -->
+  <meta charset="UTF-8">
+  <title>Status Monitor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% load static %}
+  <link rel="icon" type="image/png" href="{% static 'favicon.png' %}">
 
-    {% load static %}
-    <link rel="icon" type="image/png" href="{% static 'favicon.png' %}">
-    <link rel="stylesheet" href="{% static 'styles.css' %}">
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            up: '#16a34a',
+            down: '#dc2626',
+            forbidden: '#facc15',
+            bg_dark: '#0f172a',
+            card_dark: '#1e293b',
+            bg_light: '#f8fafc',
+            card_light: '#ffffff',
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body, .card { transition: background-color 0.4s, color 0.4s; }
+  </style>
 </head>
-<body>
-    <header class="header">
-        <div class="header-title">
-            <img src="{% static 'favicon.png' %}" alt="Ícone" class="header-icon">
-            <h1>Monitoramento de Sistemas</h1>
-        </div>
-        <span class="header-text">Desenvolvido por Pedro Amelotti, Equipe de Tecnologia XMX<br /><a href="{% url 'admin:index' %}" style="color: aliceblue; text-align: right;">Admin</a></span>
-    </header>
 
-    <main>
-        <section class="dashboard" id="dashboard">
-            <div class="dashboard-cards">
-                <article class="dashboard-card" id="card-active">
-                    <h2>Sites ativos</h2>
-                    <p class="card-value" id="active-count">0</p>
-                </article>
-                <article class="dashboard-card" id="card-forbidden">
-                    <h2>Sites proibidos</h2>
-                    <p class="card-value" id="forbidden-count">0</p>
-                </article>
-                <article class="dashboard-card" id="card-down">
-                    <h2>Sites fora do ar</h2>
-                    <p class="card-value" id="down-count">0</p>
-                </article>
-            </div>
+<body x-data="themeHandler()" x-bind:class="theme">
 
-            <div class="dashboard-meta" role="status" aria-live="polite">
-                <div class="meta-item">
-                    <span class="meta-label">Última atualização</span>
-                    <span class="meta-value" id="last-updated">--</span>
-                </div>
-                <div class="meta-item">
-                    <span class="meta-label">Próxima atualização</span>
-                    <span class="meta-value" id="next-refresh">--</span>
-                </div>
-            </div>
+  <!-- Header alinhado ao dashboard -->
+  <header class="flex justify-between items-center px-8 py-6 shadow"
+          :class="theme==='dark' ? 'bg-bg_dark text-white' : 'bg-bg_light text-gray-900'">
+    <div class="flex items-center gap-3">
+      <img src="{% static 'favicon.png' %}" alt="Ícone" class="w-8 h-8" />
+      <div>
+        <h1 class="text-2xl font-bold">Status Monitor</h1>
+        <p class="text-sm opacity-75">Monitoramento em tempo real</p>
+      </div>
+    </div>
 
-            <div class="dashboard-visualizations">
-                <div class="dashboard-chart">
-                    <header class="dashboard-section-header">
-                        <h2>Sistemas com mais indisponibilidades</h2>
-                        <span class="dashboard-chart-subtitle">Tempo total fora do ar (min)</span>
-                    </header>
-                    <canvas id="downtime-chart" aria-label="Tempo de indisponibilidade por sistema" role="img"></canvas>
-                </div>
+    <div class="flex items-center gap-4">
+      <a href="{% url 'admin:index' %}"
+         class="text-sm underline opacity-80 hover:opacity-100">Admin</a>
+      <button @click="toggleTheme"
+        class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border"
+        :class="theme==='dark' ? 'bg-card_dark border-gray-700 hover:bg-gray-700' : 'bg-card_light border-gray-300 hover:bg-gray-100'">
+        <span x-text="theme==='dark' ? '☀️ Modo Claro' : '🌙 Modo Escuro'"></span>
+      </button>
+    </div>
+  </header>
 
-                <div class="dashboard-links">
-                    <a id="detail-link" href="#main-container" class="dashboard-link">Ver lista detalhada de sites</a>
-                </div>
-            </div>
-        </section>
+  <main class="p-8 min-h-[60vh] flex items-center justify-center"
+        :class="theme==='dark' ? 'bg-bg_dark text-white' : 'bg-bg_light text-gray-900'">
+    <section class="text-center max-w-xl">
+      <h2 class="text-3xl font-semibold mb-3">Bem-vindo</h2>
+      <p class="opacity-80 mb-8">
+        Acompanhe a disponibilidade e status dos sistemas no painel completo.
+      </p>
+      <div class="flex items-center justify-center gap-4">
+        <a href="{% url 'dashboard' %}"
+           class="px-6 py-3 rounded-lg font-medium text-white bg-up hover:bg-green-600">Ir para o Dashboard</a>
+        <a href="{% url 'admin:index' %}"
+           class="px-6 py-3 rounded-lg font-medium border"
+           :class="theme==='dark' ? 'bg-card_dark border-gray-700 hover:bg-gray-700' : 'bg-card_light border-gray-300 hover:bg-gray-100'">
+           Área Administrativa
+        </a>
+      </div>
+    </section>
+  </main>
 
-        <div class="container" id="main-container">
-            <!-- onde os sistemas serão exibidos de forma dinâmica -->
-        </div>
-    </main>
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="{% static 'scripts.js' %}"></script>
+  <!-- AlpineJS -->
+  <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <script>
+    function themeHandler() {
+      return {
+        theme: localStorage.getItem('theme') || 'light',
+        toggleTheme() {
+          this.theme = this.theme === 'dark' ? 'light' : 'dark';
+          localStorage.setItem('theme', this.theme);
+        }
+      }
+    }
+  </script>
 </body>
 </html>
