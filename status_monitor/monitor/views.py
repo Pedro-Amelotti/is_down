@@ -111,7 +111,10 @@ def systems_list(request):
         systems = server.systems.select_related("current_status").all()
         servers_data[server.name] = []
         for system in systems:
-            current_status = getattr(system, "current_status", None)
+            try:
+                current_status = system.current_status
+            except SystemStatus.DoesNotExist:
+                current_status = None
             servers_data[server.name].append(
                 {
                     "name": system.name,

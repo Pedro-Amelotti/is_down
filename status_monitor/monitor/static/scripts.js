@@ -1,12 +1,15 @@
 const REFRESH_INTERVAL = 15 * 60 * 1000; // 15 minutos
 const STORAGE_KEY = 'monitorState';
+const STATE_VERSION = 2;
 
 let monitorState = null;
 let refreshTimeoutId = null;
 let downtimeChart = null;
+let refreshTickerId = null;
 
 function getDefaultState() {
     return {
+        version: STATE_VERSION,
         servers: {},
         statuses: {},
         counts: {
@@ -22,13 +25,19 @@ function getDefaultState() {
 }
 
 function loadStateFromStorage() {
-    const stored = sessionStorage.getItem(STORAGE_KEY);
-    if (!stored) {
+    if (typeof sessionStorage === 'undefined') {
         return null;
     }
-
     try {
+        const stored = sessionStorage.getItem(STORAGE_KEY);
+        if (!stored) {
+            return null;
+        }
+
         const parsed = JSON.parse(stored);
+        if (parsed.version !== STATE_VERSION) {
+            return null;
+        }
         return {
             ...getDefaultState(),
             ...parsed,
@@ -50,7 +59,15 @@ function persistState() {
     if (!monitorState) {
         return;
     }
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(monitorState));
+    if (typeof sessionStorage === 'undefined') {
+        return;
+    }
+    monitorState.version = STATE_VERSION;
+    try {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(monitorState));
+    } catch (error) {
+        console.warn('Não foi possível salvar o estado:', error);
+    }
 }
 
 function makeSafeId(value) {
@@ -203,6 +220,79 @@ function updateDashboardCards(counts) {
     }
 }
 
+function clearRefreshTicker() {
+    if (refreshTickerId) {
+        clearInterval(refreshTickerId);
+        refreshTickerId = null;
+    }
+}
+
+function formatCountdown(ms) {
+    const seconds = Math.max(0, Math.floor(ms / 1000));
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds
+        .toString()
+        .padStart(2, '0')}`;
+}
+
+function updateMetaInfo() {
+    const lastUpdatedElement = document.getElementById('last-updated');
+    const nextRefreshElement = document.getElementById('next-refresh');
+
+    if (lastUpdatedElement) {
+        if (monitorState?.lastUpdated) {
+            const date = new Date(monitorState.lastUpdated);
+            lastUpdatedElement.textContent = date.toLocaleString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+            });
+        } else {
+            lastUpdatedElement.textContent = '--';
+        }
+    }
+
+    if (nextRefreshElement) {
+        if (monitorState?.nextRefreshAt) {
+            const remaining = monitorState.nextRefreshAt - Date.now();
+            if (remaining <= 0) {
+                nextRefreshElement.textContent = 'Atualizando...';
+            } else {
+                const nextTime = new Date(monitorState.nextRefreshAt).toLocaleTimeString(
+                    'pt-BR',
+                    {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                    }
+                );
+                nextRefreshElement.textContent = `${formatCountdown(remaining)} (às ${nextTime})`;
+            }
+        } else {
+            nextRefreshElement.textContent = '--';
+        }
+    }
+}
+
+function startRefreshTicker() {
+    clearRefreshTicker();
+    updateMetaInfo();
+    if (!monitorState?.nextRefreshAt) {
+        return;
+    }
+    refreshTickerId = setInterval(() => {
+        if (!monitorState?.nextRefreshAt) {
+            clearRefreshTicker();
+            return;
+        }
+        updateMetaInfo();
+    }, 1000);
+}
+
 function renderDowntimeChart(data) {
     const canvas = document.getElementById('downtime-chart');
     if (!canvas || typeof Chart === 'undefined') {
@@ -279,6 +369,7 @@ function scheduleNextLoad(delay) {
     refreshTimeoutId = setTimeout(() => {
         loadSystems();
     }, delay);
+    startRefreshTicker();
 }
 
 function getCardElement(systemName) {
@@ -365,9 +456,14 @@ async function loadSystems() {
         persistState();
 
         scheduleNextLoad(REFRESH_INTERVAL);
+        updateMetaInfo();
     } catch (error) {
         console.error('Erro ao carregar sistemas:', error);
         container.innerHTML = '<div class="system-card down">Erro ao carregar a lista de servidores</div>';
+        monitorState.nextRefreshAt = null;
+        persistState();
+        updateMetaInfo();
+        clearRefreshTicker();
     }
 }
 
@@ -381,9 +477,11 @@ function renderFromState() {
     updateDashboardCards(monitorState.counts);
     renderDowntimeChart(monitorState.chartData);
     updateDetailLink(monitorState.detailAnchor);
+    updateMetaInfo();
 }
 
 function initializeDashboard() {
+    clearRefreshTicker();
     monitorState = loadStateFromStorage() || getDefaultState();
     renderFromState();
 

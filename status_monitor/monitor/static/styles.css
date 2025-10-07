@@ -1,16 +1,182 @@
+
 :root {
-    --primary-color:rgb(37, 20, 93); /* roxo */
+    --primary-color: rgb(37, 20, 93); /* roxo */
+    --primary-accent: #6c63ff;
     --success-color: #28a745; /* Verde */
     --danger-color: #dc3545;  /* Vermelho */
     --warning-color: #ffc107; /* Amarelo */
     --other-color: #6c757d;   /* Cinza */
+    --soft-border: rgba(76, 99, 255, 0.12);
+    --background-gradient: linear-gradient(180deg, #f4f7ff 0%, #ffffff 45%);
 }
 
 body {
     font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
     padding: 0;
-    background-color: #f8f9fa;
+    background: var(--background-gradient);
+    color: #2d2d2d;
+}
+
+main {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 20px;
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.dashboard-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.dashboard-card {
+    background: linear-gradient(145deg, #ffffff 0%, #f8f9ff 100%);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 12px 30px rgba(37, 20, 93, 0.08);
+    border: 1px solid var(--soft-border);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 150px;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 18px 36px rgba(37, 20, 93, 0.12);
+}
+
+.dashboard-card h2 {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.card-value {
+    margin: 0;
+    font-size: 2.6rem;
+    font-weight: 700;
+}
+
+#card-active .card-value {
+    color: var(--success-color);
+}
+
+#card-forbidden .card-value {
+    color: var(--warning-color);
+}
+
+#card-down .card-value {
+    color: var(--danger-color);
+}
+
+.dashboard-meta {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 0 4px;
+}
+
+.meta-item {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 12px;
+    padding: 14px 18px;
+    display: flex;
+    flex-direction: column;
+    min-width: 200px;
+    border: 1px solid var(--soft-border);
+    box-shadow: 0 6px 18px rgba(37, 20, 93, 0.06);
+}
+
+.meta-label {
+    font-size: 0.85rem;
+    color: var(--other-color);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.meta-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.dashboard-visualizations {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+}
+
+.dashboard-chart {
+    background: linear-gradient(145deg, #ffffff 0%, #f2f4ff 100%);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 12px 30px rgba(37, 20, 93, 0.08);
+    border: 1px solid var(--soft-border);
+}
+
+.dashboard-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.dashboard-section-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: var(--primary-color);
+}
+
+.dashboard-chart-subtitle {
+    color: #6c757d;
+    font-size: 0.85rem;
+}
+
+.dashboard-links {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.dashboard-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--primary-accent);
+    text-decoration: none;
+    font-weight: 600;
+    padding: 12px 16px;
+    border-radius: 12px;
+    background: rgba(108, 99, 255, 0.1);
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.dashboard-link::after {
+    content: '→';
+    transition: transform 0.2s ease;
+}
+
+.dashboard-link:hover {
+    background: rgba(108, 99, 255, 0.16);
+    transform: translateY(-2px);
+}
+
+.dashboard-link:hover::after {
+    transform: translateX(4px);
 }
 
 main {
@@ -145,7 +311,7 @@ main {
 }
 
 .header {
-    background-color: var(--primary-color);
+    background: linear-gradient(135deg, var(--primary-color) 0%, #4c2dd9 100%);
     color: white;
     padding: 1rem 2rem;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -180,10 +346,11 @@ main {
 }
 
 .systems-panel {
-    background: white;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 12px 28px rgba(37, 20, 93, 0.08);
+    border: 1px solid rgba(37, 20, 93, 0.06);
 }
 
 .systems-grid {
