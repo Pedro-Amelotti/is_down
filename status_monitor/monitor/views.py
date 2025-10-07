@@ -270,3 +270,20 @@ def dashboard_summary(request):
         }
     )
 
+def dashboard(request):
+    systems = System.objects.select_related("current_status")
+    
+    # Contagens globais
+    total = systems.count()
+    up = SystemStatus.objects.filter(status="UP").count()
+    down = SystemStatus.objects.filter(status="DOWN").count()
+    forbidden = SystemStatus.objects.filter(status="FORBIDDEN").count()
+
+    context = {
+        "systems": systems,
+        "up": up,
+        "down": down,
+        "forbidden": forbidden,
+        "total": total,
+    }
+    return render(request, "monitor/dashboard.html", context)

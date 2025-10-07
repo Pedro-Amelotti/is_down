@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Status Monitor Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            up: '#16a34a',
+            down: '#dc2626',
+            forbidden: '#facc15',
+            bg_dark: '#0f172a',
+            card_dark: '#1e293b',
+            bg_light: '#f8fafc',
+            card_light: '#ffffff',
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body, .card, table { transition: background-color 0.4s, color 0.4s; }
+  </style>
+</head>
+
+<body x-data="themeHandler()" x-bind:class="theme">
+
+  <!-- Header -->
+  <header class="flex justify-between items-center px-8 py-6 shadow"
+          :class="theme==='dark' ? 'bg-bg_dark text-white' : 'bg-bg_light text-gray-900'">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 bg-up rounded-full flex items-center justify-center text-white font-bold">SM</div>
+      <div>
+        <h1 class="text-2xl font-bold">Status Monitor</h1>
+        <p class="text-sm opacity-75">Monitoramento em tempo real de páginas</p>
+      </div>
+    </div>
+
+    <button @click="toggleTheme"
+      class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border"
+      :class="theme==='dark' ? 'bg-card_dark border-gray-700 hover:bg-gray-700' : 'bg-card_light border-gray-300 hover:bg-gray-100'">
+      <span x-text="theme==='dark' ? '🌞 Modo Claro' : '🌙 Modo Escuro'"></span>
+    </button>
+  </header>
+
+  <main class="p-8" :class="theme==='dark' ? 'bg-bg_dark text-white' : 'bg-bg_light text-gray-900'">
+    
+    <!-- Métricas -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div class="card p-5 rounded-xl shadow"
+           :class="theme==='dark' ? 'bg-card_dark' : 'bg-card_light'">
+        <p class="text-gray-500 text-sm mb-2">Uptime Médio</p>
+        <h2 class="text-2xl font-bold text-up">99.8%</h2>
+        <p class="text-xs text-green-400 mt-1">↑ 0.2%</p>
+      </div>
+
+      <div class="card p-5 rounded-xl shadow"
+           :class="theme==='dark' ? 'bg-card_dark' : 'bg-card_light'">
+        <p class="text-gray-500 text-sm mb-2">Sites Monitorados</p>
+        <h2 class="text-2xl font-bold">{{ total }}</h2>
+      </div>
+
+      <div class="card p-5 rounded-xl shadow"
+           :class="theme==='dark' ? 'bg-card_dark' : 'bg-card_light'">
+        <p class="text-gray-500 text-sm mb-2">Tempo de Resposta (médio)</p>
+        <h2 class="text-2xl font-bold text-yellow-500">142 ms</h2>
+      </div>
+
+      <div class="card p-5 rounded-xl shadow"
+           :class="theme==='dark' ? 'bg-card_dark' : 'bg-card_light'">
+        <p class="text-gray-500 text-sm mb-2">Incidentes (24 h)</p>
+        <h2 class="text-2xl font-bold text-red-500">2</h2>
+        <p class="text-xs text-red-400 mt-1">↓ 50%</p>
+      </div>
+    </section>
+
+    <!-- Gráficos lado a lado -->
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+          <div class="card p-6 rounded-xl shadow" :class="theme==='dark' ? 'bg-card_dark' : 'bg-card_light'">
+        <h2 class="text-lg font-semibold mb-4">Uptime nas Últimas 24 h</h2>
+        <div class="relative w-full h-[220px]">
+          <canvas id="uptimeLine" class="absolute inset-0"></canvas>
+        </div>
+          </div>
+      
+          <div class="card p-6 rounded-xl shadow" :class="theme==='dark' ? 'bg-card_dark' : 'bg-card_light'">
+            <h2 class="text-lg font-semibold mb-4">Distribuição Atual</h2>
+            <div class="relative w-full h-[300px] flex justify-center items-center">
+              <canvas id="statusPie" class="max-w-[280px] max-h-[280px]"></canvas>
+            </div>
+          </div>
+    </section>
+
+    <!-- Lista de sistemas -->
+    <section class="card rounded-xl shadow p-6" :class="theme==='dark' ? 'bg-card_dark' : 'bg-card_light'">
+      <h2 class="text-lg font-semibold mb-4">Sistemas Monitorados</h2>
+
+      <div class="space-y-3">
+        {% for s in systems %}
+        {% with st=s.current_status %}
+        <div class="flex items-center justify-between p-3 rounded-lg"
+             :class="theme==='dark' ? 'hover:bg-gray-800' : 'hover:bg-gray-50'">
+          <div class="flex items-center gap-3">
+            <div class="w-3 h-3 rounded-full"
+                 style="background-color:{% if st.status == 'UP' %}#16a34a{% elif st.status == 'DOWN' %}#dc2626{% elif st.status == 'FORBIDDEN' %}#facc15{% else %}#6b7280{% endif %};">
+            </div>
+            <div>
+              <p class="font-medium">{{ s.name }}</p>
+              <p class="text-xs opacity-70">{{ s.url }}</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-4 text-sm">
+            <span class="flex items-center gap-1 text-gray-400">
+              ⏱ {{ st.checked_at|date:"H:i" }}
+            </span>
+            {% if st.status == "UP" %}
+              <span class="bg-up/20 text-up px-3 py-1 rounded-full text-xs font-medium">Online</span>
+            {% elif st.status == "DOWN" %}
+              <span class="bg-down/20 text-down px-3 py-1 rounded-full text-xs font-medium">Offline</span>
+            {% elif st.status == "FORBIDDEN" %}
+              <span class="bg-forbidden/20 text-yellow-600 px-3 py-1 rounded-full text-xs font-medium">Bloqueado</span>
+            {% else %}
+              <span class="bg-gray-300/20 px-3 py-1 rounded-full text-xs font-medium">{{ st.status }}</span>
+            {% endif %}
+          </div>
+        </div>
+        {% endwith %}
+        {% endfor %}
+      </div>
+    </section>
+  </main>
+
+  <!-- AlpineJS -->
+  <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+
+  <script>
+    function themeHandler() {
+      return {
+        theme: localStorage.getItem('theme') || 'light',
+        toggleTheme() {
+          this.theme = this.theme === 'dark' ? 'light' : 'dark';
+          localStorage.setItem('theme', this.theme);
+        }
+      }
+    }
+
+    // Gráficos
+    document.addEventListener("DOMContentLoaded", () => {
+      // Uptime nas últimas 24h (linha)
+      const uptimeLine = new Chart(document.getElementById("uptimeLine"), {
+        type: "line",
+        data: {
+          labels: ["00h","04h","08h","12h","16h","20h"],
+          datasets: [{
+            label: "Uptime (%)",
+            data: [100, 98, 99, 99.5, 98.7, 100],
+            borderColor: "#16a34a",
+            tension: 0.3,
+            fill: false,
+          }]
+        },
+        options: {
+          scales: {
+            y: { beginAtZero: false, min: 95, max: 100 }
+          },
+          plugins: { legend: { display: false } },
+          responsive: true,
+          maintainAspectRatio: false,
+        }
+      });
+
+      // Distribuição de status (pizza)
+      const statusPie = new Chart(document.getElementById("statusPie"), {
+        type: "doughnut",
+        data: {
+          labels: ["UP", "DOWN", "FORBIDDEN"],
+          datasets: [{
+            data: [{{ up }}, {{ down }}, {{ forbidden }}],
+            backgroundColor: ["#16a34a", "#dc2626", "#facc15"]
+          }]
+        },
+        options: {
+          plugins: {
+            legend: {
+              position: "bottom",
+              labels: {
+                color: localStorage.getItem('theme') === 'dark' ? '#fff' : '#111'
+              }
+            }
+          },
+          maintainAspectRatio: false
+        }
+      });
+    });
+  </script>
+</body>
+</html>
