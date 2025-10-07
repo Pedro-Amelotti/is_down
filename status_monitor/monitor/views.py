@@ -1,23 +1,23 @@
-import logging
-from datetime import timedelta
-
 import requests
-from django.conf import settings
-from django.core.cache import cache
-from django.db import models
+import logging
+import time
+
 from django.db.models import ExpressionWrapper, F, Q, Sum, Value
+from django.db import models, transaction, OperationalError
+from django.views.decorators.http import require_GET
 from django.db.models.functions import Coalesce
+from django.utils.text import slugify
 from django.http import JsonResponse
+from django.core.cache import cache
 from django.shortcuts import render
 from django.utils import timezone
-from django.utils.text import slugify
-from django.views.decorators.http import require_GET
-
+from django.conf import settings
+from datetime import timedelta
 from .models import (
-    Server,
     System,
-    SystemDowntime,
+    Server,
     SystemStatus,
+    SystemDowntime,
     SystemStatusHistory,
 )
 
@@ -134,6 +134,7 @@ def systems_list(request):
 def system_status(request):
     url = request.GET.get("url")
     name = request.GET.get("name")
+
     if not url or not name:
         return JsonResponse({"error": "Parâmetros ausentes"}, status=400)
 
@@ -144,52 +145,74 @@ def system_status(request):
     notify_discord(name, url, status_str, status_code)
 
     system = System.objects.filter(name=name).first()
-    if system:
-        SystemStatus.objects.update_or_create(
-            system=system,
-            defaults={
-                "status": status_str,
-                "status_code": status_code if status_code is not None else None,
-                "checked_at": now,
-            },
-        )
+    if not system:
+        return JsonResponse({"error": "Sistema não encontrado"}, status=404)
 
-        SystemStatusHistory.objects.create(
-            system=system,
-            status=status_str,
-            status_code=status_code if status_code is not None else None,
-            checked_at=now,
-        )
+    # Tentar evitar bloqueio SQLite com retry
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            with transaction.atomic():
+                # 1️⃣ Atualiza status atual
+                obj = SystemStatus.objects.filter(system=system).first()
+                if obj:
+                    obj.status = status_str
+                    obj.status_code = status_code
+                    obj.checked_at = now
+                    obj.save(update_fields=["status", "status_code", "checked_at"])
+                else:
+                    SystemStatus.objects.create(
+                        system=system,
+                        status=status_str,
+                        status_code=status_code,
+                        checked_at=now,
+                    )
 
-        active_downtime = SystemDowntime.objects.filter(
-            system=system, ended_at__isnull=True
-        ).first()
-
-        if status_str == "UP":
-            if active_downtime:
-                active_downtime.ended_at = now
-                active_downtime.save(update_fields=["ended_at"])
-        elif status_str in {"DOWN", "FORBIDDEN"}:
-            if active_downtime:
-                if active_downtime.status != status_str:
-                    active_downtime.status = status_str
-                    active_downtime.save(update_fields=["status"])
-            else:
-                SystemDowntime.objects.create(
+                # 2️⃣ Histórico de status
+                SystemStatusHistory.objects.create(
                     system=system,
                     status=status_str,
-                    started_at=now,
+                    status_code=status_code,
+                    checked_at=now,
                 )
 
-    return JsonResponse(
-        {
-            "name": name,
-            "url": url,
-            "status": status_str,
-            "checked_at": timezone.localtime(now).strftime("%Y-%m-%d %H:%M:%S"),
-        }
-    )
+                # 3️⃣ Controle de downtime
+                active_downtime = SystemDowntime.objects.filter(
+                    system=system, ended_at__isnull=True
+                ).first()
 
+                if status_str == "UP":
+                    if active_downtime:
+                        active_downtime.ended_at = now
+                        active_downtime.save(update_fields=["ended_at"])
+                elif status_str in {"DOWN", "FORBIDDEN"}:
+                    if active_downtime:
+                        if active_downtime.status != status_str:
+                            active_downtime.status = status_str
+                            active_downtime.save(update_fields=["status"])
+                    else:
+                        SystemDowntime.objects.create(
+                            system=system,
+                            status=status_str,
+                            started_at=now,
+                        )
+            break  # saiu do loop se tudo correu bem
+
+        except OperationalError:
+            # SQLite pode travar, então damos uma pequena pausa e tentamos de novo
+            if attempt < max_retries - 1:
+                time.sleep(0.5)
+                continue
+            else:
+                return JsonResponse({"error": "Database locked, tente novamente."}, status=500)
+
+    # 4️⃣ Resposta final
+    return JsonResponse({
+        "name": name,
+        "url": url,
+        "status": status_str,
+        "checked_at": timezone.localtime(now).strftime("%Y-%m-%d %H:%M:%S"),
+    })
 
 @require_GET
 def dashboard_summary(request):
@@ -246,3 +269,4 @@ def dashboard_summary(request):
             "detail_anchor": "#main-container",
         }
     )
+
