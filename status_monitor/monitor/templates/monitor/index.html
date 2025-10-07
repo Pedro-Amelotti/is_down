@@ -18,10 +18,44 @@
         <span class="header-text">Desenvolvido por Pedro Amelotti, Equipe de Tecnologia XMX<br /><a href="{% url 'admin:index' %}" style="color: aliceblue; text-align: right;">Admin</a></span>
     </header>
 
-    <div class="container" id="main-container">
-        <!-- onde os sistemas serão exibidos de forma dinâmica -->
-    </div> 
-    
+    <main>
+        <section class="dashboard" id="dashboard">
+            <div class="dashboard-cards">
+                <article class="dashboard-card" id="card-active">
+                    <h2>Sites ativos</h2>
+                    <p class="card-value" id="active-count">0</p>
+                </article>
+                <article class="dashboard-card" id="card-forbidden">
+                    <h2>Sites proibidos</h2>
+                    <p class="card-value" id="forbidden-count">0</p>
+                </article>
+                <article class="dashboard-card" id="card-down">
+                    <h2>Sites fora do ar</h2>
+                    <p class="card-value" id="down-count">0</p>
+                </article>
+            </div>
+
+            <div class="dashboard-visualizations">
+                <div class="dashboard-chart">
+                    <header class="dashboard-section-header">
+                        <h2>Sistemas com mais indisponibilidades</h2>
+                        <span class="dashboard-chart-subtitle">Tempo total fora do ar (min)</span>
+                    </header>
+                    <canvas id="downtime-chart" aria-label="Tempo de indisponibilidade por sistema" role="img"></canvas>
+                </div>
+
+                <div class="dashboard-links">
+                    <a id="detail-link" href="#main-container" class="dashboard-link">Ver lista detalhada de sites</a>
+                </div>
+            </div>
+        </section>
+
+        <div class="container" id="main-container">
+            <!-- onde os sistemas serão exibidos de forma dinâmica -->
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="{% static 'scripts.js' %}"></script>
 </body>
 </html>
