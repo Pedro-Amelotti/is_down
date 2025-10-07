@@ -120,4 +120,5 @@ function createSystemCard(system, status = 'loading') {
         }
 
         loadSystems();
-        setInterval(loadSystems, 60000);
+        // setInterval(loadSystems, 60000);
+        setInterval(loadSystems,  (15 * 60) * 1000); // (15 minutos)

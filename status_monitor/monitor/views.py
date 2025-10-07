@@ -89,7 +89,7 @@ def notify_discord(name: str, url: str, status_str: str, status_code: int | None
     if not webhook_url:
         return
 
-    failure_statuses = {"DOWN", "FORBIDDEN"}
+    failure_statuses = {"DOWN"}
     cache_key = _cache_key_for_system(name)
     last_status = cache.get(cache_key)
     cache.set(cache_key, status_str, timeout=24 * 3600)
@@ -139,21 +139,6 @@ def notify_discord(name: str, url: str, status_str: str, status_code: int | None
 def index(request):
     return render(request, 'monitor/index.html')
 
-# def status(request):
-#     results = {}
-#     for server_name, systems in servers.items():
-#         server_results = []
-#         for system in systems:
-#             status_code = check_url(system['url'])
-#             status_str = get_status_string(status_code)
-#             server_results.append({
-#                 "name": system['name'],
-#                 "url": system['url'],
-#                 "status": status_str,
-#                 "checked_at": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-#             })
-#         results[server_name] = server_results
-#     return JsonResponse(results)
 
 @require_GET
 def systems_list(request):
@@ -186,8 +171,3 @@ def system_status(request):
         "status": status_str,
         "checked_at": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     })
-
-def glpi_assistencias(request):
-    return render(request, 'monitor/glpi_assistencias.html')
-
-
