@@ -55,6 +55,7 @@ def _cache_key_for_system(name: str) -> str:
 def notify_discord(name: str, url: str, status_str: str, status_code: int | None) -> None:
     webhook_url = getattr(settings, "DISCORD_WEBHOOK_URL", None)
     if not webhook_url:
+        logger.debug("DISCORD_WEBHOOK_URL não configurado; ignorando aviso para %s", name)
         return
 
     failure_statuses = {"DOWN"}
@@ -63,10 +64,11 @@ def notify_discord(name: str, url: str, status_str: str, status_code: int | None
     cache.set(cache_key, status_str, timeout=24 * 3600)
 
     message = None
+    local_now_str = timezone.localtime(timezone.now()).strftime("%Y-%m-%d %H:%M:%S")
 
     if status_str in failure_statuses:
         if last_status == status_str:
-            return
+            pass
         readable_code = status_code or "sem resposta"
         message = {
             "content": (
@@ -79,7 +81,7 @@ def notify_discord(name: str, url: str, status_str: str, status_code: int | None
                 status=status_str,
                 url=url,
                 code=readable_code,
-                checked_at=timezone.now().strftime("%Y-%m-%d %H:%M:%S"),
+                checked_at=local_now_str,
             )
         }
     elif last_status in failure_statuses and status_str == "UP":
@@ -91,7 +93,7 @@ def notify_discord(name: str, url: str, status_str: str, status_code: int | None
             ).format(
                 name=name,
                 url=url,
-                checked_at=timezone.now().strftime("%Y-%m-%d %H:%M:%S"),
+                checked_at=local_now_str,
             )
         }
 
@@ -99,8 +101,11 @@ def notify_discord(name: str, url: str, status_str: str, status_code: int | None
         return
 
     try:
-        response = requests.post(webhook_url, json=message, timeout=5)
+        response = requests.post(webhook_url, json=message, timeout=10)
+        if not (200 <= response.status_code < 300):
+            logger.error("Falha ao enviar webhook Discord (%s): %s", response.status_code, getattr(response, 'text', ''))
         response.raise_for_status()
+        logger.info("Notificação Discord enviada para '%s' (%s)", name, status_str)
     except requests.RequestException:
         logger.exception("Falha ao enviar notificação para o Discord para %s", name)
 

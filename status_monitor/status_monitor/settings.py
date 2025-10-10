@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 import os
 from pathlib import Path
+from decouple import config
 
 
 def _load_env_file(path: Path) -> None:
@@ -166,4 +167,4 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 # Integrações externas
-DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")
+DISCORD_WEBHOOK_URL = config("DISCORD_WEBHOOK_URL")

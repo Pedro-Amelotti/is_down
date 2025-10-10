@@ -44,26 +44,26 @@
       <img src="{% static 'favicon.png' %}" alt="Logo" class="w-8 h-8 rounded-full" />
       <div>
         <h1 class="text-2xl font-bold">Status Monitor - XMX</h1>
-        <p class="text-sm opacity-75">Monitoramento em tempo real de páginas</p>
+        <p class="text-sm opacity-75">Monitoramento em tempo real de pÃƒÂ¡ginas</p>
       </div>
     </div>
 
     <button @click="toggleTheme"
       class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border"
       :class="theme==='dark' ? 'bg-card_dark border-gray-700 hover:bg-gray-700' : 'bg-card_light border-gray-300 hover:bg-gray-100'">
-      <span x-text="theme==='dark' ? '🌞 Modo Claro' : '🌙 Modo Escuro'"></span>
+      <span x-text="theme==='dark' ? 'Modo Claro' : 'Modo Escuro'"></span>
     </button>
   </header>
 
   <main class="p-8" :class="theme==='dark' ? 'bg-bg_dark text-white' : 'bg-bg_light text-gray-900'">
     
-    <!-- Métricas -->
+    <!-- MÃƒÂ©tricas -->
     <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       <div class="card p-5 rounded-xl shadow"
            :class="theme==='dark' ? 'bg-card_dark' : 'bg-card_light'">
         <p class="text-gray-500 text-sm mb-2">Uptime Médio</p>
         <h2 class="text-2xl font-bold text-up">99.8%</h2>
-        <p class="text-xs text-green-400 mt-1">↑ 0.2%</p>
+        <p class="text-xs text-green-400 mt-1">0.2%</p>
       </div>
 
       <div class="card p-5 rounded-xl shadow"
@@ -74,19 +74,19 @@
 
       <div class="card p-5 rounded-xl shadow"
            :class="theme==='dark' ? 'bg-card_dark' : 'bg-card_light'">
-        <p class="text-gray-500 text-sm mb-2">Tempo de Resposta (médio)</p>
+        <p class="text-gray-500 text-sm mb-2">Tempo de Resposta (Médio)</p>
         <h2 class="text-2xl font-bold text-yellow-500">142 ms</h2>
       </div>
 
-      <div class="card p-5 rounded-xl shadow"
+      {% comment %} <div class="card p-5 rounded-xl shadow"
            :class="theme==='dark' ? 'bg-card_dark' : 'bg-card_light'">
         <p class="text-gray-500 text-sm mb-2">Incidentes (24 h)</p>
         <h2 class="text-2xl font-bold text-red-500">2</h2>
-        <p class="text-xs text-red-400 mt-1">↓ 50%</p>
-      </div>
+        <p class="text-xs text-red-400 mt-1">50%</p>
+      </div> {% endcomment %}
     </section>
 
-    <!-- Gráficos lado a lado -->
+    <!-- GrÃƒÂ¡ficos lado a lado -->
     <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
           <div class="card p-6 rounded-xl shadow" :class="theme==='dark' ? 'bg-card_dark' : 'bg-card_light'">
         <h2 class="text-lg font-semibold mb-4">Uptime nas Últimas 24 h</h2>
@@ -111,16 +111,16 @@
         {% for server in servers %}
         <div class="rounded-lg border p-4" :class="theme==='dark' ? 'border-gray-700' : 'border-gray-200'">
           <header class="mb-3">
-            <h3 class="font-semibold">{{ server.name }}</h3>
+            <h3 class="font-semibold">{{ server.name }} <span class="text-xs opacity-60">({{ server.systems.all|length }})</span></h3>
           </header>
 
           <div class="space-y-3">
             {% for s in server.systems.all %}
             {% with st=s.current_status %}
-            <div class="flex items-center justify-between p-3 rounded-lg system-row" data-name="{{ s.name }}" data-url="{{ s.url }}"
+            <div class="flex items-center justify-between p-3 rounded-lg system-row" data-name="{{ s.name }}" data-url="{{ s.url }}" data-status="{{ st.status }}"
                  :class="theme==='dark' ? 'hover:bg-gray-800' : 'hover:bg-gray-50'">
               <div class="flex items-center gap-3">
-                <div class="w-3 h-3 rounded-full"
+                <div class="w-3 h-3 rounded-full status-dot"
                      style="background-color:{% if st.status == 'UP' %}#16a34a{% elif st.status == 'DOWN' %}#dc2626{% elif st.status == 'FORBIDDEN' %}#facc15{% else %}#6b7280{% endif %};">
                 </div>
                 <div>
@@ -131,16 +131,16 @@
 
                 <div class="flex items-center gap-4 text-sm">
                     <span class="flex items-center gap-1 text-gray-400">
-                        ⏱ {{ st.checked_at|localtime|date:"H:i" }}
+                        {{ st.checked_at|localtime|date:"H:i" }}
                     </span>
                         {% if st.status == "UP" %}
-                            <span class="bg-up/20 text-up px-3 py-1 rounded-full text-xs font-medium">Online</span>
+                            <span class="status-pill bg-up/20 text-up px-3 py-1 rounded-full text-xs font-medium">Online</span>
                         {% elif st.status == "DOWN" %}
-                            <span class="bg-down/20 text-down px-3 py-1 rounded-full text-xs font-medium">Offline</span>
+                            <span class="status-pill bg-down/20 text-down px-3 py-1 rounded-full text-xs font-medium">Offline</span>
                         {% elif st.status == "FORBIDDEN" %}
-                            <span class="bg-forbidden/20 text-yellow-600 px-3 py-1 rounded-full text-xs font-medium">Bloqueado</span>
+                            <span class="status-pill bg-forbidden/20 text-yellow-600 px-3 py-1 rounded-full text-xs font-medium">Bloqueado</span>
                         {% else %}
-                            <span class="bg-gray-300/20 px-3 py-1 rounded-full text-xs font-medium">{{ st.status }}</span>
+                            <span class="status-pill bg-gray-300/20 px-3 py-1 rounded-full text-xs font-medium">{{ st.status }}</span>
                         {% endif %}
                     <div class="text-xs text-gray-400 mt-1 response-time">-- ms</div>
                 </div>
@@ -172,7 +172,7 @@
 
           <div class="flex items-center gap-4 text-sm">
             <span class="flex items-center gap-1 text-gray-400">
-              ⏱ {{ st.checked_at|localtime|date:"H:i" }}
+              Ã¢ÂÂ± {{ st.checked_at|localtime|date:"H:i" }}
             </span>
             {% if st.status == "UP" %}
               <span class="bg-up/20 text-up px-3 py-1 rounded-full text-xs font-medium">Online</span>
@@ -250,26 +250,28 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // força render após layout
+  //  render layout
   setTimeout(() => {
     uptimeLine.resize();
     uptimeLine.update();
-    console.log("Chart redesenhado manualmente ✅");
+    console.log("Chart redesenhado manualmente Ã¢Å“â€¦");
   }, 300);
 
-  // Pie chart (Distribuição Atual) usando contadores do contexto
+  // Pie chart usando contadores do contexto
   const pieCanvas = document.getElementById('statusPie');
+  let statusPie = null;
+  const statusCounts = { UP: {{ up|default:0 }}, FORBIDDEN: {{ forbidden|default:0 }}, DOWN: {{ down|default:0 }} };
   if (pieCanvas && typeof Chart !== 'undefined') {
     const upCount = {{ up|default:0 }};
     const forbiddenCount = {{ forbidden|default:0 }};
     const downCount = {{ down|default:0 }};
 
-    new Chart(pieCanvas, {
+    statusPie = new Chart(pieCanvas, {
       type: 'doughnut',
       data: {
         labels: ['UP', 'FORBIDDEN', 'DOWN'],
         datasets: [{
-          data: [upCount, forbiddenCount, downCount],
+          data: [statusCounts.UP, statusCounts.FORBIDDEN, statusCounts.DOWN],
           backgroundColor: ['#16a34a', '#facc15', '#dc2626'],
           borderWidth: 1,
         }],
@@ -281,7 +283,12 @@ document.addEventListener("DOMContentLoaded", () => {
           legend: { position: 'bottom' },
           tooltip: {
             callbacks: {
-              label: (ctx) => `${ctx.label}: ${ctx.parsed}`,
+              label: (ctx) => {
+                const total = statusCounts.UP + statusCounts.FORBIDDEN + statusCounts.DOWN;
+                const val = ctx.parsed;
+                const pct = total ? ((val / total) * 100).toFixed(1) : 0;
+                return `${ctx.label}: ${val} (${pct}%)`;
+              },
             },
           },
         },
@@ -289,18 +296,64 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Atualiza tempo de resposta em cada linha de sistema
+  // Atualiza tempo de resposta e status visual em cada linha de sistema
   async function refreshResponseTime(row) {
     const url = row.getAttribute('data-url');
     const name = row.getAttribute('data-name');
     if (!url || !name) return;
     const msEl = row.querySelector('.response-time');
+    const prevStatus = row.getAttribute('data-status');
     try {
       const resp = await fetch(`/system_status/?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name)}`);
       if (!resp.ok) throw new Error('Falha ao consultar');
       const data = await resp.json();
       if (msEl && typeof data.response_ms === 'number') {
         msEl.textContent = `${data.response_ms} ms`;
+        row.setAttribute('data-response-ms', String(data.response_ms));
+      }
+      if (data && data.status) {
+        // Atualiza dot, pill e tempo
+        const dot = row.querySelector('.status-dot');
+        const pill = row.querySelector('.status-pill');
+        let timeEl = row.querySelector('.status-time');
+        const colorMap = { UP: '#16a34a', DOWN: '#dc2626', FORBIDDEN: '#facc15', OTHER: '#6b7280' };
+        const clsMap = {
+          UP: 'status-pill bg-up/20 text-up px-3 py-1 rounded-full text-xs font-medium',
+          DOWN: 'status-pill bg-down/20 text-down px-3 py-1 rounded-full text-xs font-medium',
+          FORBIDDEN: 'status-pill bg-forbidden/20 text-yellow-600 px-3 py-1 rounded-full text-xs font-medium',
+          OTHER: 'status-pill bg-gray-300/20 px-3 py-1 rounded-full text-xs font-medium',
+        };
+        const labelMap = { UP: 'Online', DOWN: 'Offline', FORBIDDEN: 'Bloqueado' };
+        const key = (['UP','DOWN','FORBIDDEN'].includes(data.status)) ? data.status : 'OTHER';
+        if (dot) dot.style.backgroundColor = colorMap[key] || colorMap.OTHER;
+        if (pill) {
+          pill.className = clsMap[key] || clsMap.OTHER;
+          pill.textContent = labelMap[key] || (data.status || 'DESCONHECIDO');
+        }
+        if (data.checked_at) {
+          const hhmm = (data.checked_at && data.checked_at.slice) ? data.checked_at.slice(11,16) : data.checked_at;
+          if (timeEl) {
+            timeEl.textContent = hhmm;
+          } else {
+            const wrap = row.querySelector('span.text-gray-400');
+            if (wrap) wrap.textContent = ` ${hhmm}`;
+          }
+        }
+        // Atualiza contadores e grÃƒÂ¡fico se mudou de status
+        if (typeof statusCounts !== 'undefined' && data.status !== prevStatus) {
+          if (prevStatus && statusCounts[prevStatus] !== undefined) {
+            statusCounts[prevStatus] = Math.max(0, statusCounts[prevStatus] - 1);
+          }
+          if (statusCounts[data.status] !== undefined) {
+            statusCounts[data.status] += 1;
+          }
+          if (statusPie) {
+            statusPie.data.datasets[0].data = [statusCounts.UP, statusCounts.FORBIDDEN, statusCounts.DOWN];
+            statusPie.update();
+          }
+        }
+        row.setAttribute('data-status', data.status);
+        updateMetricCards();
       }
     } catch (e) {
       if (msEl) msEl.textContent = `-- ms`;
@@ -308,9 +361,71 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  function updateMetricCards() {
+    // Localiza cards pelo rótulo (primeiro <p> dentro do card)
+    const metricSection = document.querySelector('section.grid.grid-cols-1');
+    const cards = metricSection ? metricSection.querySelectorAll('.card') : document.querySelectorAll('section .card');
+    if (!cards || cards.length === 0) return;
+
+    // Coleta dados atuais
+    const rows = Array.from(document.querySelectorAll('.system-row'));
+    const total = rows.length;
+    let counts = { UP: 0, FORBIDDEN: 0, DOWN: 0 };
+    rows.forEach(r => {
+      const st = r.getAttribute('data-status');
+      if (st && counts[st] !== undefined) counts[st] += 1;
+    });
+    const upPct = total ? ((counts.UP / total) * 100) : 0;
+
+    // Média de resposta
+    const times = rows.map(r => Number(r.getAttribute('data-response-ms'))).filter(n => Number.isFinite(n));
+    const avgMs = times.length ? Math.round(times.reduce((a,b)=>a+b,0) / times.length) : null;
+
+    // Incidentes atuais: DOWN no momento (ajuste se desejar incluir FORBIDDEN)
+    const incidentsNow = counts.DOWN;
+
+    // Atualiza DOM pelos rótulos
+    cards.forEach(card => {
+      const labelEl = card.querySelector('p.text-gray-500');
+      const valueEl = card.querySelector('h2');
+      if (!labelEl || !valueEl) return;
+      const label = (labelEl.textContent || '').toLowerCase();
+      if (label.includes('uptime')) {
+        const span = valueEl.querySelector('#uptime-value') || valueEl;
+        span.textContent = `${upPct.toFixed(1)}%`;
+      } else if (label.includes('sites monitorados')) {
+        const span = valueEl.querySelector('#total-count') || valueEl;
+        span.textContent = String(total);
+      } else if (label.includes('tempo de resposta')) {
+        const span = valueEl.querySelector('#avg-response') || valueEl;
+        span.textContent = avgMs != null ? `${avgMs} ms` : '-- ms';
+      } else if (label.includes('incidentes')) {
+        const span = valueEl.querySelector('#incidents-24h') || valueEl;
+        span.textContent = String(incidentsNow);
+      }
+    });
+  }
+
+  // Normaliza o container de tempo para conter um span.status-time
+  document.querySelectorAll('.system-row').forEach((row) => {
+    const wrap = row.querySelector('span.text-gray-400');
+    if (wrap && !wrap.querySelector('.status-time')) {
+      const existing = wrap.textContent || '';
+      const match = existing.match(/(\d{2}:\d{2})/);
+      const hhmm = match ? match[1] : existing.trim();
+      wrap.innerHTML = `<span class="status-time">${hhmm}</span>`;
+    }
+  });
+
   document.querySelectorAll('.system-row').forEach((row) => {
     refreshResponseTime(row);
   });
+  // Atualiza métricas iniciais (com base no estado renderizado)
+  updateMetricCards();
+  // Atualiza automaticamente a cada 60s
+  setInterval(() => {
+    document.querySelectorAll('.system-row').forEach((row) => refreshResponseTime(row));
+  }, 60000);
 });
   </script>
 </body>
